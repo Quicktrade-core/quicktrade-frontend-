@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.data, .dark *));
+
+* {
+    scroll-behavior: smooth;
+}
+
+.fade {
+    animation: fade 3s;
+}
+
+.width {
+    flex: 0 0 calc((100% - 8px) / 3);
+}
+
+@keyframes fade {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
