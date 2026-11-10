@@ -2,7 +2,7 @@
 import axios from "axios";
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE || "http://localhost:8000";
+  "https://quicktrade-backend.onrender.com";
 
 const STORAGE_KEY = "authToken";
 

@@ -11,7 +11,7 @@ import seller from "../assets/sellerProfile.png"
 import Scrolltotop from "../utils/scrolltotop"
 import FormatPrice from "../utils/formatPrice"
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
+const API_BASE = "https://quicktrade-backend.onrender.com"
 
 function fmtFull(dateStr) {
   if (!dateStr) return "TBA"

@@ -15,7 +15,7 @@ import lagosVideo from "../assets/banner3.mp4"
 // It lives in public/, so it's referenced by its public path
 const heroPoster = "/hero.jpg"
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
+const API_BASE = "https://quicktrade-backend.onrender.com"
 
 const HomePage = () => {
   const [categories, setCategories] = useState([])
