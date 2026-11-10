@@ -9,7 +9,7 @@ import Scrolltotop from "../utils/scrolltotop"
 import FormatPrice from "../utils/formatPrice"
 import { useDebouncedValue } from "../hooks/useDebouncedValue"
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
+const API_BASE = "https://quicktrade-backend.onrender.com";
 const RECENT_KEY = "qt_recent_searches"
 const MIN_RESULTS = 15
 
