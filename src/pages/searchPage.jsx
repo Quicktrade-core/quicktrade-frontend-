@@ -9,7 +9,7 @@ import Scrolltotop from "../utils/scrolltotop"
 import FormatPrice from "../utils/formatPrice"
 import { useDebouncedValue } from "../hooks/useDebouncedValue"
 
-const API_BASE = "https://quicktrade-backend.onrender.com"
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
 const RECENT_KEY = "qt_recent_searches"
 const MIN_RESULTS = 15
 
@@ -39,45 +39,35 @@ const highlightText = (text, query) => {
 const ProductResult = ({ item, query }) => (
   <Link
     to={`/product/${item.id}`}
-    className="bg-white flex gap-3 p-3 rounded-xl shadow-md shadow-neutral-300 dark:bg-neutral-800 dark:shadow-none"
+    className="flex flex-col rounded-xl overflow-hidden bg-white shadow-sm shadow-neutral-200 dark:bg-neutral-800 dark:shadow-none"
   >
-    <img
-      src={item.image_url || "/placeholder.png"}
-      alt={item.title}
-      className="w-24 h-20 object-cover rounded-xl shrink-0"
-    />
-    <div className="flex-1 flex flex-col justify-between min-w-0">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-start gap-2">
-          <p className="font-bold leading-tight truncate flex-1">
-            {highlightText(item.title, query || "")}
-          </p>
-          {item.type === "ticket" && (
-            <span className="bg-orange-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
-              TICKET
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-neutral-500 line-clamp-2 dark:text-neutral-400">
-          {highlightText(item.description, query || "")}
-        </p>
-        <div className="flex items-center gap-1">
-          <FaStar className="text-amber-400 text-xs" />
-          <p className="text-neutral-500 text-xs dark:text-neutral-400">
-            {item.seller_rating?.toFixed?.(1) || "4.9"} · {item.views || 0} sold
-          </p>
-        </div>
-      </div>
-      <div className="flex justify-between items-end mt-2">
-        <span className="flex items-center font-semibold text-sm">
-          <FaNairaSign className="text-xs" />{" "}
+    <div className="relative">
+      <img
+        src={item.image_url || "/placeholder.png"}
+        alt={item.title}
+        className="w-full aspect-square object-cover"
+      />
+      {item.type === "ticket" && (
+        <span className="absolute top-1.5 left-1.5 bg-orange-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+          TICKET
+        </span>
+      )}
+    </div>
+    <div className="flex flex-col gap-1 p-2">
+      <p className="font-semibold text-xs leading-tight line-clamp-2">
+        {highlightText(item.title, query || "")}
+      </p>
+      <div className="flex items-center justify-between">
+        <span className="flex items-center font-bold text-sm">
+          <FaNairaSign className="text-[10px]" />
           {FormatPrice(parseFloat(item.price || 0))}
         </span>
-        {item.distance != null && (
-          <span className="flex items-center gap-1 text-xs text-neutral-500">
-            <MdLocationOn /> {item.distance} km
+        <div className="flex items-center gap-1">
+          <FaStar className="text-amber-400 text-[10px]" />
+          <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
+            {item.seller_rating?.toFixed?.(1) || "4.9"}
           </span>
-        )}
+        </div>
       </div>
     </div>
   </Link>
@@ -94,17 +84,14 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // Discovery state
   const [discoveryProducts, setDiscoveryProducts] = useState([])
   const [discoverySuggestions, setDiscoverySuggestions] = useState([])
   const [discoveryLoading, setDiscoveryLoading] = useState(true)
 
-  // Query-mode extras
   const [suggestions, setSuggestions] = useState([])
   const [relatedTerms, setRelatedTerms] = useState([])
   const [fillerProducts, setFillerProducts] = useState([])
 
-  // Recent searches
   const [recentSearches, setRecentSearches] = useState([])
 
   const debouncedQuery = useDebouncedValue(query, 350)
@@ -112,7 +99,6 @@ const SearchPage = () => {
 
   const hasQuery = !!queryParam.trim()
 
-  // ---------- Load recent searches ----------
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]")
@@ -122,12 +108,10 @@ const SearchPage = () => {
     }
   }, [])
 
-  // ---------- Focus input ----------
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
 
-  // ---------- Sync URL with debounced query (only when user is typing) ----------
   useEffect(() => {
     const t = debouncedQuery.trim()
     if (t === queryParam) return
@@ -135,7 +119,6 @@ const SearchPage = () => {
     else setParams({}, { replace: true })
   }, [debouncedQuery, queryParam, setParams])
 
-  // ---------- Load discovery (no query) ----------
   useEffect(() => {
     if (hasQuery) return
     let cancelled = false
@@ -160,7 +143,6 @@ const SearchPage = () => {
     }
   }, [hasQuery])
 
-  // ---------- Load search results (with query) ----------
   useEffect(() => {
     if (!hasQuery) {
       setResults([])
@@ -176,7 +158,6 @@ const SearchPage = () => {
     ;(async () => {
       setLoading(true)
       setError("")
-
       try {
         const res = await fetch(
           `${API_BASE}/marketplace/listings/?q=${encodeURIComponent(queryParam)}&page=1&page_size=30`
@@ -191,7 +172,6 @@ const SearchPage = () => {
           setSuggestions(data.suggestions || [])
           setRelatedTerms(data.related_terms || [])
 
-          // If fewer than MIN_RESULTS, fetch filler products from discovery
           if (listings.length < MIN_RESULTS) {
             const fillerRes = await fetch(`${API_BASE}/marketplace/search/discovery/`)
             const fillerData = await fillerRes.json()
@@ -222,7 +202,6 @@ const SearchPage = () => {
     }
   }, [hasQuery, queryParam])
 
-  // ---------- Recent searches helpers ----------
   const saveRecent = (term) => {
     const t = term.trim()
     if (!t) return
@@ -245,7 +224,6 @@ const SearchPage = () => {
     localStorage.removeItem(RECENT_KEY)
   }
 
-  // ---------- Navigation helpers ----------
   const submitSearch = (term) => {
     const t = term.trim()
     if (!t) return
@@ -259,17 +237,9 @@ const SearchPage = () => {
     submitSearch(query)
   }
 
-  const handleRecentClick = (term) => {
-    submitSearch(term)
-  }
-
-  const handleSuggestionClick = (term) => {
-    submitSearch(term)
-  }
-
-  const handleRelatedClick = (term) => {
-    submitSearch(term.value)
-  }
+  const handleRecentClick = (term) => submitSearch(term)
+  const handleSuggestionClick = (term) => submitSearch(term)
+  const handleRelatedClick = (term) => submitSearch(term.value)
 
   const handleClearInput = () => {
     setQuery("")
@@ -281,7 +251,6 @@ const SearchPage = () => {
     <main className="bg-white min-h-screen flex flex-col dark:bg-neutral-900 dark:text-white">
       <Scrolltotop />
 
-      {/* Search bar */}
       <div className="bg-white flex items-center gap-3 p-4 sticky top-0 z-10 shadow-md shadow-neutral-300 dark:bg-neutral-800 dark:shadow-none">
         <button onClick={() => navigate(-1)} className="cursor-pointer">
           <FaArrowLeft />
@@ -320,7 +289,6 @@ const SearchPage = () => {
         {/* ============ MODE A: NO QUERY ============ */}
         {!hasQuery && (
           <div className="flex flex-col gap-6">
-            {/* Recent searches */}
             {recentSearches.length > 0 && (
               <div className="flex flex-col gap-3">
                 <div className="flex justify-between items-center">
@@ -357,7 +325,6 @@ const SearchPage = () => {
               </div>
             )}
 
-            {/* Category suggestions */}
             {discoverySuggestions.length > 0 && (
               <div className="flex flex-col gap-3">
                 <p className="font-bold">Browse categories</p>
@@ -376,16 +343,18 @@ const SearchPage = () => {
               </div>
             )}
 
-            {/* Recent products grid */}
             <div className="flex flex-col gap-3">
               <p className="font-bold">Fresh on QuickTrade</p>
               {discoveryLoading && (
                 <p className="text-center text-neutral-500 py-6">Loading…</p>
               )}
-              {!discoveryLoading &&
-                discoveryProducts.map((item) => (
-                  <ProductResult key={item.id} item={item} query="" />
-                ))}
+              {!discoveryLoading && (
+                <div className="grid grid-cols-2 gap-3">
+                  {discoveryProducts.map((item) => (
+                    <ProductResult key={item.id} item={item} query="" />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -393,7 +362,6 @@ const SearchPage = () => {
         {/* ============ MODE B: WITH QUERY ============ */}
         {hasQuery && (
           <div className="flex flex-col gap-4">
-            {/* Did you mean */}
             {suggestions.length > 0 && (
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 dark:bg-orange-900/20 dark:border-orange-800">
                 <p className="text-sm text-neutral-700 dark:text-neutral-300">
@@ -414,7 +382,6 @@ const SearchPage = () => {
               </div>
             )}
 
-            {/* Related chips */}
             {relatedTerms.length > 0 && results.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-neutral-500 mb-2 uppercase tracking-wider">
@@ -439,33 +406,28 @@ const SearchPage = () => {
               </div>
             )}
 
-            {/* Loading */}
             {loading && (
               <p className="text-center text-neutral-500 py-10">Searching…</p>
             )}
 
-            {/* Error */}
             {!loading && error && (
               <p className="text-center text-red-500 py-10">{error}</p>
             )}
 
-            {/* Results count */}
             {!loading && !error && results.length > 0 && (
               <p className="text-sm text-neutral-500">
                 {total} result{total === 1 ? "" : "s"} for "{queryParam}"
               </p>
             )}
 
-            {/* Results */}
             {!loading && !error && results.length > 0 && (
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {results.map((item) => (
                   <ProductResult key={item.id} item={item} query={queryParam} />
                 ))}
               </div>
             )}
 
-            {/* No results */}
             {!loading && !error && results.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <BiSearch className="text-6xl text-neutral-300 dark:text-neutral-600" />
@@ -478,7 +440,6 @@ const SearchPage = () => {
               </div>
             )}
 
-            {/* Filler section */}
             {!loading && !error && fillerProducts.length > 0 && (
               <div className="flex flex-col gap-3 mt-6">
                 <div className="flex items-center gap-3">
@@ -488,9 +449,11 @@ const SearchPage = () => {
                   </p>
                   <span className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700"></span>
                 </div>
-                {fillerProducts.map((item) => (
-                  <ProductResult key={item.id} item={item} query="" />
-                ))}
+                <div className="grid grid-cols-2 gap-3">
+                  {fillerProducts.map((item) => (
+                    <ProductResult key={item.id} item={item} query="" />
+                  ))}
+                </div>
               </div>
             )}
           </div>
